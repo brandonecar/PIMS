@@ -14,6 +14,7 @@ from app.models.case import Case
 from app.models.crude import CrudeAssay, CrudeAssayCut
 from app.models.unit import ProcessUnit, UnitYield
 from app.models.product import Product, ProductBlendSpec
+from app.models.product_recipe import ProductRecipe
 from app.models.stream import Stream
 
 
@@ -142,8 +143,9 @@ def seed(db: Session) -> Case:
             "min_capacity": 5000, "max_capacity": 50000,
             "variable_cost_per_bbl": 1.20,
             "yields": [
-                ("Atmospheric Residue", "Vacuum Gas Oil", 0.55),
-                ("Atmospheric Residue", "Vacuum Residue", 0.45),
+                # (input, output, yield_fraction, output_sulfur_pct)
+                ("Atmospheric Residue", "Vacuum Gas Oil", 0.55, 1.20),
+                ("Atmospheric Residue", "Vacuum Residue", 0.45, 2.50),
             ],
         },
         {
@@ -151,10 +153,10 @@ def seed(db: Session) -> Case:
             "min_capacity": 5000, "max_capacity": 40000,
             "variable_cost_per_bbl": 3.00,
             "yields": [
-                ("Vacuum Gas Oil", "FCC Gasoline", 0.50),
-                ("Vacuum Gas Oil", "FCC Light Cycle Oil", 0.20),
-                ("Vacuum Gas Oil", "FCC Slurry", 0.10),
-                ("Vacuum Gas Oil", "LPG", 0.15),
+                ("Vacuum Gas Oil", "FCC Gasoline", 0.50, 0.05),
+                ("Vacuum Gas Oil", "FCC Light Cycle Oil", 0.20, 0.80),
+                ("Vacuum Gas Oil", "FCC Slurry", 0.10, 1.50),
+                ("Vacuum Gas Oil", "LPG", 0.15, 0.001),
             ],
         },
         {
@@ -162,8 +164,8 @@ def seed(db: Session) -> Case:
             "min_capacity": 3000, "max_capacity": 25000,
             "variable_cost_per_bbl": 2.50,
             "yields": [
-                ("Heavy Naphtha", "Reformate", 0.85),
-                ("Heavy Naphtha", "LPG", 0.10),
+                ("Heavy Naphtha", "Reformate", 0.85, 0.0001),
+                ("Heavy Naphtha", "LPG", 0.10, 0.001),
             ],
         },
         {
@@ -171,8 +173,8 @@ def seed(db: Session) -> Case:
             "min_capacity": 3000, "max_capacity": 30000,
             "variable_cost_per_bbl": 1.80,
             "yields": [
-                ("Light Gas Oil", "Hydrotreated Diesel", 0.97),
-                ("FCC Light Cycle Oil", "Hydrotreated Diesel", 0.95),
+                ("Light Gas Oil", "Hydrotreated Diesel", 0.97, 0.005),
+                ("FCC Light Cycle Oil", "Hydrotreated Diesel", 0.95, 0.005),
             ],
         },
     ]
@@ -189,12 +191,13 @@ def seed(db: Session) -> Case:
         )
         db.add(unit)
         db.flush()
-        for inp, out, frac in yields_list:
+        for inp, out, frac, sulfur in yields_list:
             db.add(UnitYield(
                 unit_id=unit.id,
                 input_stream=inp,
                 output_stream=out,
                 yield_fraction=frac,
+                output_sulfur_pct=sulfur,
             ))
 
     # ── Products ──────────────────────────────────────────────
@@ -202,37 +205,44 @@ def seed(db: Session) -> Case:
         {
             "name": "Gasoline", "price_per_bbl": 95.00,
             "min_demand": 5000, "max_demand": 50000,
-            "specs": [("sulfur", None, 0.001)],
+            "specs": [("sulfur", None, 0.10)],  # 1000 ppm — no FCC gasoline desulf unit
+            "recipe_streams": ["Light Naphtha", "FCC Gasoline", "Reformate"],
         },
         {
             "name": "Jet Fuel", "price_per_bbl": 92.00,
             "min_demand": 3000, "max_demand": 25000,
             "specs": [("sulfur", None, 0.30)],
+            "recipe_streams": ["Kerosene"],
         },
         {
             "name": "Diesel", "price_per_bbl": 90.00,
             "min_demand": 5000, "max_demand": 40000,
             "specs": [("sulfur", None, 0.05)],
+            "recipe_streams": ["Hydrotreated Diesel", "Light Gas Oil"],
         },
         {
             "name": "Fuel Oil", "price_per_bbl": 60.00,
             "min_demand": 0, "max_demand": 30000,
             "specs": [("sulfur", None, 3.50)],
+            "recipe_streams": ["Vacuum Residue", "FCC Slurry", "Heavy Gas Oil"],
         },
         {
             "name": "LPG", "price_per_bbl": 45.00,
             "min_demand": 0, "max_demand": 15000,
             "specs": [],
+            "recipe_streams": ["LPG"],
         },
         {
             "name": "Naphtha", "price_per_bbl": 70.00,
             "min_demand": 0, "max_demand": 20000,
             "specs": [],
+            "recipe_streams": ["Light Naphtha", "Heavy Naphtha"],
         },
     ]
 
     for pd_ in products_data:
         specs_data = pd_["specs"]
+        recipe_streams = pd_["recipe_streams"]
         product = Product(
             case_id=case.id,
             name=pd_["name"],
@@ -249,6 +259,11 @@ def seed(db: Session) -> Case:
                 min_value=min_val,
                 max_value=max_val,
                 blend_type="linear_volume",
+            ))
+        for stream_name in recipe_streams:
+            db.add(ProductRecipe(
+                product_id=product.id,
+                stream_name=stream_name,
             ))
 
     db.commit()

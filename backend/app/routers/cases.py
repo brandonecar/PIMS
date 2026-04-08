@@ -6,6 +6,7 @@ from app.models.case import Case
 from app.models.crude import CrudeAssay, CrudeAssayCut
 from app.models.unit import ProcessUnit, UnitYield
 from app.models.product import Product, ProductBlendSpec
+from app.models.product_recipe import ProductRecipe
 from app.models.stream import Stream
 from app.schemas.case import CaseCreate, CaseRead, CaseUpdate
 
@@ -126,6 +127,11 @@ def clone_case(case_id: int, db: Session = Depends(get_db)):
                 min_value=spec.min_value,
                 max_value=spec.max_value,
                 blend_type=spec.blend_type,
+            ))
+        for recipe in product.recipes:
+            db.add(ProductRecipe(
+                product_id=new_product.id,
+                stream_name=recipe.stream_name,
             ))
 
     # Clone streams

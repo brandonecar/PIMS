@@ -59,6 +59,12 @@ export interface ProductBlendSpec {
   blend_type: string;
 }
 
+export interface ProductRecipe {
+  id: number;
+  product_id: number;
+  stream_name: string;
+}
+
 export interface Product {
   id: number;
   case_id: number;
@@ -67,6 +73,7 @@ export interface Product {
   min_demand: number;
   max_demand: number;
   blend_specs: ProductBlendSpec[];
+  recipes: ProductRecipe[];
 }
 
 // ── Stream ───────────────────────────────────────────────────
@@ -75,4 +82,54 @@ export interface Stream {
   case_id: number;
   name: string;
   stream_type: string;
+}
+
+// ── Solver Results ──────────────────────────────────────────
+export interface CrudeSlateRow {
+  crude: string;
+  volume: number;
+  cost_per_bbl: number;
+  total_cost: number;
+}
+
+export interface UnitThroughputRow {
+  unit: string;
+  throughput: number;
+  max_capacity: number;
+  utilization_pct: number;
+  processing_cost: number;
+}
+
+export interface ProductOutputRow {
+  product: string;
+  volume: number;
+  price_per_bbl: number;
+  revenue: number;
+  sulfur_pct?: number;
+  sulfur_max?: number;
+}
+
+export interface StreamFlowRow {
+  stream: string;
+  destination: string;
+  flow_type: string;
+  volume: number;
+}
+
+export interface MarginBreakdown {
+  revenue: number;
+  crude_cost: number;
+  processing_cost: number;
+  gross_margin: number;
+}
+
+export interface SolveResult {
+  status: string;
+  objective_value: number | null;
+  solve_time_ms?: number;
+  crude_slate: CrudeSlateRow[];
+  unit_throughputs: UnitThroughputRow[];
+  product_outputs: ProductOutputRow[];
+  stream_flows: StreamFlowRow[];
+  margin: MarginBreakdown;
 }

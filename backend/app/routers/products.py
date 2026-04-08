@@ -3,12 +3,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.product import Product, ProductBlendSpec
+from app.models.product_recipe import ProductRecipe
 from app.schemas.product import (
     ProductCreate,
     ProductRead,
     ProductUpdate,
     ProductBlendSpecRead,
     BlendSpecsUpsert,
+    ProductRecipeRead,
+    RecipesUpsert,
 )
 
 router = APIRouter(tags=["products"])
@@ -95,3 +98,44 @@ def upsert_blend_specs(
     for spec in new_specs:
         db.refresh(spec)
     return new_specs
+
+
+# ── Product Recipes (bulk upsert) ───────────────────────────
+
+@router.get(
+    "/api/products/{product_id}/recipes", response_model=list[ProductRecipeRead]
+)
+def list_recipes(product_id: int, db: Session = Depends(get_db)):
+    return (
+        db.query(ProductRecipe)
+        .filter(ProductRecipe.product_id == product_id)
+        .order_by(ProductRecipe.id)
+        .all()
+    )
+
+
+@router.put(
+    "/api/products/{product_id}/recipes", response_model=list[ProductRecipeRead]
+)
+def upsert_recipes(
+    product_id: int, body: RecipesUpsert, db: Session = Depends(get_db)
+):
+    """Replace all recipes for this product with the provided set."""
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    db.query(ProductRecipe).filter(
+        ProductRecipe.product_id == product_id
+    ).delete()
+
+    new_recipes = []
+    for r in body.recipes:
+        recipe = ProductRecipe(product_id=product_id, **r.model_dump())
+        db.add(recipe)
+        new_recipes.append(recipe)
+
+    db.commit()
+    for recipe in new_recipes:
+        db.refresh(recipe)
+    return new_recipes

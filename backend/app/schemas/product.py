@@ -33,6 +33,19 @@ class ProductUpdate(BaseModel):
     max_demand: float | None = None
 
 
+# --- Product Recipe ---
+
+class ProductRecipeBase(BaseModel):
+    stream_name: str
+
+
+class ProductRecipeRead(ProductRecipeBase):
+    id: int
+    product_id: int
+
+    model_config = {"from_attributes": True}
+
+
 class ProductRead(BaseModel):
     id: int
     case_id: int
@@ -41,6 +54,7 @@ class ProductRead(BaseModel):
     min_demand: float
     max_demand: float
     blend_specs: list[ProductBlendSpecRead] = []
+    recipes: list[ProductRecipeRead] = []
 
     model_config = {"from_attributes": True}
 
@@ -49,3 +63,9 @@ class ProductRead(BaseModel):
 
 class BlendSpecsUpsert(BaseModel):
     specs: list[ProductBlendSpecBase]
+
+
+# --- Bulk upsert for recipes ---
+
+class RecipesUpsert(BaseModel):
+    recipes: list[ProductRecipeBase]

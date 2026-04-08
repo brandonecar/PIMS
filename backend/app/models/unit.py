@@ -31,5 +31,6 @@ class UnitYield(Base):
     input_stream: Mapped[str] = mapped_column(String(120), nullable=False)
     output_stream: Mapped[str] = mapped_column(String(120), nullable=False)
     yield_fraction: Mapped[float] = mapped_column(Numeric(8, 5), nullable=False, default=0)
+    output_sulfur_pct: Mapped[float | None] = mapped_column(Numeric(10, 6), default=0)
 
     unit: Mapped["ProcessUnit"] = relationship(back_populates="yields")

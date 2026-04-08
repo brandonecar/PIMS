@@ -18,4 +18,6 @@ COPY . .
 # Re-install in editable mode now that real source is present
 RUN pip install --no-cache-dir --no-deps -e .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+RUN chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]

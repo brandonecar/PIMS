@@ -46,7 +46,8 @@ export default function CasesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Delete case "${name}"? This cannot be undone.`)) return;
     try {
       await api.deleteCase(id);
       setCases((prev) => prev.filter((c) => c.id !== id));
@@ -141,7 +142,7 @@ export default function CasesPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(c.id);
+                            handleDelete(c.id, c.name);
                           }}
                           className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded"
                         >

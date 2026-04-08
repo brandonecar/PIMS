@@ -18,6 +18,9 @@ class Product(Base):
     blend_specs: Mapped[list["ProductBlendSpec"]] = relationship(
         back_populates="product", cascade="all, delete-orphan", lazy="selectin"
     )
+    recipes: Mapped[list["ProductRecipe"]] = relationship(  # noqa: F821
+        back_populates="product", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 class ProductBlendSpec(Base):

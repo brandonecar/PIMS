@@ -1,4 +1,4 @@
-import type { Case, CrudeAssay, ProcessUnit, Product, Stream } from "./types";
+import type { Case, CrudeAssay, ProcessUnit, Product, Stream, SolveResult } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -116,4 +116,10 @@ export const api = {
     }),
   deleteStream: (streamId: number) =>
     request<void>(`/api/streams/${streamId}`, { method: "DELETE" }),
+
+  // Solver
+  optimize: (caseId: number) =>
+    request<SolveResult>(`/api/cases/${caseId}/optimize`, { method: "POST" }),
+  getResults: (caseId: number) =>
+    request<SolveResult>(`/api/cases/${caseId}/results`),
 };
