@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_guest_id, verify_case_owner
 from app.models.case import Case
 from app.models.run import OptimizationRun
 from app.solver.model_builder import solve_case, SOLVER_NAME
@@ -33,11 +34,13 @@ EMPTY_RESULT = {
 
 
 @router.post("/api/cases/{case_id}/optimize")
-def optimize(case_id: int, db: Session = Depends(get_db)):
+def optimize(
+    case_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
     """Build and solve the refinery LP for a case, store the run, return results."""
-    case = db.get(Case, case_id)
-    if not case:
-        raise HTTPException(404, "Case not found")
+    case = verify_case_owner(case_id, guest_id, db)
 
     try:
         result = solve_case(case)
@@ -60,8 +63,14 @@ def optimize(case_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/api/cases/{case_id}/results")
-def get_results(case_id: int, db: Session = Depends(get_db)):
+def get_results(
+    case_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
     """Return the most recent optimization results for a case."""
+    verify_case_owner(case_id, guest_id, db)
+
     run = (
         db.query(OptimizationRun)
         .filter(OptimizationRun.case_id == case_id)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_guest_id, verify_case_owner, verify_entity_owner
 from app.models.product import Product, ProductBlendSpec
 from app.models.product_recipe import ProductRecipe
 from app.schemas.product import (
@@ -17,10 +18,21 @@ from app.schemas.product import (
 router = APIRouter(tags=["products"])
 
 
+def _get_product(product_id: int, guest_id: str, db: Session) -> Product:
+    product = db.get(Product, product_id)
+    verify_entity_owner(product, guest_id, db, "Product")
+    return product
+
+
 # ── Products ──────────────────────────────────────────────────
 
 @router.get("/api/cases/{case_id}/products", response_model=list[ProductRead])
-def list_products(case_id: int, db: Session = Depends(get_db)):
+def list_products(
+    case_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    verify_case_owner(case_id, guest_id, db)
     return (
         db.query(Product)
         .filter(Product.case_id == case_id)
@@ -30,7 +42,13 @@ def list_products(case_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/api/cases/{case_id}/products", response_model=ProductRead, status_code=201)
-def create_product(case_id: int, body: ProductCreate, db: Session = Depends(get_db)):
+def create_product(
+    case_id: int,
+    body: ProductCreate,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    verify_case_owner(case_id, guest_id, db)
     product = Product(case_id=case_id, **body.model_dump())
     db.add(product)
     db.commit()
@@ -39,10 +57,13 @@ def create_product(case_id: int, body: ProductCreate, db: Session = Depends(get_
 
 
 @router.put("/api/products/{product_id}", response_model=ProductRead)
-def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(get_db)):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(404, "Product not found")
+def update_product(
+    product_id: int,
+    body: ProductUpdate,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    product = _get_product(product_id, guest_id, db)
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
     db.commit()
@@ -51,10 +72,12 @@ def update_product(product_id: int, body: ProductUpdate, db: Session = Depends(g
 
 
 @router.delete("/api/products/{product_id}", status_code=204)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(404, "Product not found")
+def delete_product(
+    product_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    product = _get_product(product_id, guest_id, db)
     db.delete(product)
     db.commit()
 
@@ -64,7 +87,12 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/api/products/{product_id}/specs", response_model=list[ProductBlendSpecRead]
 )
-def list_blend_specs(product_id: int, db: Session = Depends(get_db)):
+def list_blend_specs(
+    product_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    _get_product(product_id, guest_id, db)
     return (
         db.query(ProductBlendSpec)
         .filter(ProductBlendSpec.product_id == product_id)
@@ -77,12 +105,13 @@ def list_blend_specs(product_id: int, db: Session = Depends(get_db)):
     "/api/products/{product_id}/specs", response_model=list[ProductBlendSpecRead]
 )
 def upsert_blend_specs(
-    product_id: int, body: BlendSpecsUpsert, db: Session = Depends(get_db)
+    product_id: int,
+    body: BlendSpecsUpsert,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
 ):
     """Replace all blend specs for this product with the provided set."""
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(404, "Product not found")
+    _get_product(product_id, guest_id, db)
 
     db.query(ProductBlendSpec).filter(
         ProductBlendSpec.product_id == product_id
@@ -105,7 +134,12 @@ def upsert_blend_specs(
 @router.get(
     "/api/products/{product_id}/recipes", response_model=list[ProductRecipeRead]
 )
-def list_recipes(product_id: int, db: Session = Depends(get_db)):
+def list_recipes(
+    product_id: int,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
+):
+    _get_product(product_id, guest_id, db)
     return (
         db.query(ProductRecipe)
         .filter(ProductRecipe.product_id == product_id)
@@ -118,12 +152,13 @@ def list_recipes(product_id: int, db: Session = Depends(get_db)):
     "/api/products/{product_id}/recipes", response_model=list[ProductRecipeRead]
 )
 def upsert_recipes(
-    product_id: int, body: RecipesUpsert, db: Session = Depends(get_db)
+    product_id: int,
+    body: RecipesUpsert,
+    guest_id: str = Depends(get_guest_id),
+    db: Session = Depends(get_db),
 ):
     """Replace all recipes for this product with the provided set."""
-    product = db.get(Product, product_id)
-    if not product:
-        raise HTTPException(404, "Product not found")
+    _get_product(product_id, guest_id, db)
 
     db.query(ProductRecipe).filter(
         ProductRecipe.product_id == product_id

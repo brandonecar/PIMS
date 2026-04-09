@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import cases, crudes, units, products, streams, solver
+from app.routers import cases, crudes, units, products, streams, solver, guest
 
 app = FastAPI(title="PIMS Optimizer", version="0.1.0")
 
@@ -20,6 +20,7 @@ app.include_router(units.router)
 app.include_router(products.router)
 app.include_router(streams.router)
 app.include_router(solver.router)
+app.include_router(guest.router)
 
 
 @app.get("/api/health")

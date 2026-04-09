@@ -56,6 +56,21 @@ export default function CasesPage() {
     }
   };
 
+  const handleReset = async () => {
+    if (
+      !confirm(
+        "Reset your workspace? This deletes all your cases and creates a fresh Demo Refinery."
+      )
+    )
+      return;
+    try {
+      await api.resetWorkspace();
+      await loadCases();
+    } catch (e) {
+      console.error("Failed to reset workspace:", e);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-[#f8f9fa]">
       {/* Header */}
@@ -63,13 +78,21 @@ export default function CasesPage() {
         <span className="font-semibold text-sm tracking-wide">
           PIMS Optimizer
         </span>
-        <span className="ml-4 text-xs text-slate-400">Case Management</span>
+        <span className="ml-4 text-xs text-slate-400">Your Workspace</span>
       </header>
 
       {/* Main content */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-lg font-semibold mb-4">Cases</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-lg font-semibold">Cases</h1>
+            <button
+              onClick={handleReset}
+              className="text-xs px-3 py-1.5 text-slate-500 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+            >
+              Reset Workspace
+            </button>
+          </div>
 
           {/* Create form */}
           <div className="flex gap-2 mb-6">
@@ -101,7 +124,6 @@ export default function CasesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left px-3 py-2 font-medium">ID</th>
                     <th className="text-left px-3 py-2 font-medium">Name</th>
                     <th className="text-left px-3 py-2 font-medium">
                       Description
@@ -121,10 +143,9 @@ export default function CasesPage() {
                       className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer"
                       onClick={() => router.push(`/cases/${c.id}/crudes`)}
                     >
-                      <td className="px-3 py-2 text-slate-500">{c.id}</td>
                       <td className="px-3 py-2 font-medium">{c.name}</td>
                       <td className="px-3 py-2 text-slate-500">
-                        {c.description || "—"}
+                        {c.description || "\u2014"}
                       </td>
                       <td className="px-3 py-2 text-slate-500">
                         {new Date(c.updated_at).toLocaleDateString()}

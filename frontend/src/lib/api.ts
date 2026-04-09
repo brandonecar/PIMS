@@ -1,11 +1,16 @@
 import type { Case, CrudeAssay, ProcessUnit, Product, Stream, SolveResult } from "./types";
+import { getGuestId } from "./guest";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Guest-Id": getGuestId(),
+      ...init?.headers,
+    },
   });
   if (!res.ok) {
     const text = await res.text();
@@ -122,4 +127,8 @@ export const api = {
     request<SolveResult>(`/api/cases/${caseId}/optimize`, { method: "POST" }),
   getResults: (caseId: number) =>
     request<SolveResult>(`/api/cases/${caseId}/results`),
+
+  // Guest
+  resetWorkspace: () =>
+    request<Case>("/api/guest/reset", { method: "POST" }),
 };

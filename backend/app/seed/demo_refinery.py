@@ -18,14 +18,21 @@ from app.models.product_recipe import ProductRecipe
 from app.models.stream import Stream
 
 
-def seed(db: Session) -> Case:
-    # Check if demo case already exists
-    existing = db.query(Case).filter(Case.name == "Demo Refinery").first()
+def seed(db: Session, guest_id: str | None = None) -> Case:
+    # Check if demo case already exists for this guest
+    q = db.query(Case).filter(Case.name == "Demo Refinery")
+    if guest_id is not None:
+        q = q.filter(Case.guest_id == guest_id)
+    existing = q.first()
     if existing:
         print("Demo case already exists, skipping seed.")
         return existing
 
-    case = Case(name="Demo Refinery", description="Simplified refinery for development and testing")
+    case = Case(
+        name="Demo Refinery",
+        description="Simplified refinery for development and testing",
+        guest_id=guest_id,
+    )
     db.add(case)
     db.flush()
 
